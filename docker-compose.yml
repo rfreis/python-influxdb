@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  app:
+    image: python:3.8
+    command: python
+    container_name: app
+    tty: true
+    stdin_open: true
+    volumes:
+      - .:/app
+    env_file: ./.env
+    depends_on:
+      - influxdb
+    networks:
+      - python-influxdb-network
+
+  influxdb:
+    image: quay.io/influxdb/influxdb:v2.0.3
+    container_name: trading-bot-influxdb
+    tty: true
+    volumes:
+      - .data/.influxdbv2:/var/lib/influxdb
+    env_file: ./.env
+    ports:
+      - "8086:8086"
+    networks:
+      - python-influxdb-network
+
+  influxdb-setup:
+    links:
+      - influxdb
+    image: quay.io/influxdb/influxdb:v2.0.3
+    entrypoint: /app/setup.sh
+    container_name: trading-bot-influxdb-setup
+    tty: true
+    volumes:
+      - .:/app
+    env_file: ./.env
+    restart: on-failure:10
+    depends_on:
+      - influxdb
+    networks:
+      - python-influxdb-network
+
+networks:
+  python-influxdb-network:
+    driver: bridge
